@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# Secrets
+.env
+.env.local
+*.keystore
+*.jks
+
+# Build output kept out of the repo; the APK is submitted separately
+app/build/
+backend/node_modules/

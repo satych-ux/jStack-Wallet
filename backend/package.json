@@ -1,0 +1,21 @@
+{
+  "name": "jwallet-lite-backend",
+  "version": "1.0.0",
+  "description": "Mock REST API backend for jWallet Lite (jStack Flutter assignment)",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
