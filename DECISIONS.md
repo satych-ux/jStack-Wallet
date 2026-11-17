@@ -12,4 +12,7 @@ One entry per decision. This feeds the README's "Architecture decisions" section
 | 6 | Search and Credit/Debit filter applied client-side | The spec's list endpoint has no query params; the dataset is small | Would not scale past a few hundred rows; noted as a limitation |
 | 7 | In-memory backend store, single process | Spec allows in-memory; keeps the check-and-deduct atomic without a database | State resets on restart; documented |
 
+| 8 | Section-level shimmer instead of a full-screen loader | Balance and transactions come from separate endpoints and separate blocs, so each resolves on its own; it also proves the rebuild scope is isolated | More widgets to build and test |
+| 9 | Shimmer for fetching, button spinner for actions | One loading vocabulary per kind of wait, so the UI never shows two at once | None |
+
 <!-- Add new rows as you go. Keep the "why" in one sentence you can say out loud. -->
