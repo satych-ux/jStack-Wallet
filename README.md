@@ -101,4 +101,19 @@ TODO. Candidates to document:
 
 TODO: list the components that were substantially AI-generated, and confirm that all submitted code has been reviewed and is explainable.
 
+AI-generated so far (log, kept up to date per task):
+
+- T0: `core/theme/` (colours, text styles, spacing, theme), `core/widgets/brand_mark.dart`, the TEMPORARY domain/data stubs for all four features, and `test/theme_test.dart`. Values transcribed from `DESIGN.md`.
+- T1: every shared widget in `core/widgets/` and `core/widgets/shimmer/`, the component text styles added to `app_text_styles.dart`, and the widget tests in `test/core/widgets/`.
+- T2: `core/router/` (`app_routes.dart`, `app_router.dart`, `not_found_screen.dart`, the TEMPORARY `route_placeholder.dart`) and `test/core/router/router_test.dart`.
+- T3: `features/auth/presentation/` (login screen, demo-credentials card), `features/auth/domain/validators/login_validators.dart`, and their tests in `test/features/auth/`.
+- T4: `core/presentation/section.dart`, `features/wallet/presentation/` (dashboard screen, header, recent activity, view models) and `test/features/wallet/dashboard_screen_test.dart`.
+- T5: `features/transfer/presentation/` (send money screen, balance strip, `TransferDraft`), `features/transfer/domain/validators/transfer_validators.dart`, and their tests in `test/features/transfer/`.
+- T6: `features/transfer/presentation/screens/confirm_transfer_screen.dart`, `models/confirmation_view.dart`, and `test/features/transfer/confirm_transfer_screen_test.dart`.
+- T7: `features/transfer/presentation/screens/transfer_result_screen.dart`, `models/transfer_result_view.dart`, the `header` slot on `DetailCard`, and `test/features/transfer/transfer_result_screen_test.dart`.
+- T8: `features/transactions/presentation/` (history screen, search field, `history_view.dart` with `groupHistory`), and `test/features/transactions/`.
+- T9: `features/transactions/presentation/screens/transaction_details_screen.dart`, `models/transaction_details_view.dart`, the foreground-border fix in `DetailCard`, its shimmer and the text-field frame, and `test/features/transactions/transaction_details_screen_test.dart`.
+- App wiring: `main.dart` (`JWalletApp`), `onLoginSubmitted` and the Send money → Confirmation hop in `app_router.dart`, `TransferAttempt`, `ConfirmationView.fromDraft`, and `test/app_test.dart`.
+- Sample-data wiring (TEMPORARY): `core/router/temporary_fake_wiring.dart` and its use in `app_router.dart` and `main.dart`.
+
 Tooling used: TODO.

@@ -101,7 +101,37 @@ Every heading is Sora. No exceptions.
 
 ---
 
-## 2. Shared components
+## 2. How reusable, and no further
+
+Aim for plain, obvious widgets. The test is whether a Flutter developer who
+has never seen this repo can read one file and know what it does.
+
+**Do**
+- Variants as an `enum` plus a `switch` inside one widget
+  (`JWalletButtonVariant.primary / secondary / disabled / loading`).
+- Concrete types everywhere. `String`, `double`, a feature's entity.
+- Named parameters, required where there is no sane default, optional with a
+  default where there is.
+- Plain callbacks: `VoidCallback`, `ValueChanged<String>`.
+- Composition. A screen builds from widgets; widgets build from widgets.
+- Keep a widget in its screen file until a **second** screen needs it. Promote
+  to `core/widgets/` on the second use, not in anticipation of one.
+
+**Do not**
+- No generics. No `<T>` on any widget in this project.
+- No abstract base widget classes, no template methods, no mixins for UI.
+- No builder patterns, widget factories, or registries.
+- No custom `typedef` unless the same signature appears three or more times.
+- No `ThemeExtension`. Static classes (`AppColors.brand`,
+  `AppTextStyles.body`) are enough here and are easier to explain.
+- No configuration objects with ten optional fields. If a widget needs that
+  many knobs, it is two widgets.
+- No premature `const` factories or singletons.
+
+If a widget takes more than six parameters, or you reach for a type parameter,
+stop and split it instead.
+
+## 3. Shared components
 
 All under `core/widgets/` unless a feature owns it outright.
 
@@ -265,11 +295,11 @@ touch target aligns to the 20px screen padding.
 
 ---
 
-## 3. Screens
+## 4. Screens
 
 Canvas frame is `390x844`. Build fluid — no hardcoded screen width.
 
-### 3.1 Login — `/login`
+### 4.1 Login — `/login`
 Padding `56 24 28`. Column:
 BrandMark · gap 16 · `jWallet Lite` (`wordmark`) · gap 36 · `Sign in to move money.`
 (`display`, max width 260) · gap 10 · body copy (`bodySmall` `inkMuted`, max width 280)
@@ -281,7 +311,7 @@ Demo card: radius `14`, border `1` `line`, bg `surface`, padding `16`.
 `DEMO CREDENTIALS` in `monoLabel`; gap 12; two space-between rows,
 label `bodySmall`-13 `inkMuted`, value `monoValue`-13 `ink`, gap 8 between rows.
 
-### 3.2 Dashboard — `/dashboard`
+### 4.2 Dashboard — `/dashboard`
 Padding `52 20 24`. Column:
 Header row (left: `WELCOME BACK` `monoLabel`, gap 5, name `titleName`;
 right: `44x44` avatar circle bg `ink`, initials Manrope 600 14 `white`)
@@ -292,7 +322,7 @@ right: `44x44` avatar circle bg `ink`, initials Manrope 600 14 `white`)
 
 Wrap the scroll view in `RefreshIndicator` (colour `brand`).
 
-### 3.3 Send money — `/transfer`
+### 4.3 Send money — `/transfer`
 Padding `48 20 24`. Column:
 `AppTopBar("Send money")` · gap 14 · balance strip (radius 12, bg `surface`,
 padding `14 16`, `AVAILABLE` `monoLabel` left, amount `monoValueBold`-15 right)
@@ -301,7 +331,7 @@ Mobile number (with `+91` prefix), Remarks (with a right-aligned `Optional` hint
 Manrope 11 `inkFaint`) · spacer · `caption` `inkFaint` explaining the backend owns
 the balance · gap 14 · primary button `Review transfer`.
 
-### 3.4 Confirmation — `/transfer/confirm`
+### 4.4 Confirmation — `/transfer/confirm`
 Padding `48 20 24`. Column:
 `AppTopBar("Review transfer")` · gap 30 · centred block
 (`YOU ARE SENDING` `monoLabel`, gap 12, amount `amountHero`, gap 10,
@@ -312,7 +342,7 @@ request key · spacer · centred request-key line (`REQUEST KEY` Space Mono 10
 `0.12em` `inkFaint`, gap 8, the key, Space Mono 10 `inkFaint`) · gap 16 ·
 primary `Confirm transfer` · gap 10 · secondary `Edit details`.
 
-### 3.5 Result — `/transfer/result`
+### 4.5 Result — `/transfer/result`
 One screen, two states driven by a parameter.
 
 **Success.** Padding `72 20 24`. Centred: `76x76` circle bg `successTint`
@@ -331,7 +361,7 @@ First card block is a banner: padding `16`, bg `brandTint`, reason in
 Then rows BENEFICIARY, RESPONSE (status code), BALANCE (bg `surface`).
 Buttons: primary `Try again`, secondary `Back to dashboard`.
 
-### 3.6 History — `/transactions`
+### 4.6 History — `/transactions`
 Padding `48 20 24`. Column:
 `AppTopBar("Transactions")` · gap 12 · search field (height 48, radius 12,
 border `line`, 18px magnifier `inkFaint`, gap 10, placeholder
@@ -340,7 +370,7 @@ border `line`, 18px magnifier `inkFaint`, gap 10, placeholder
 date header `monoLabel` e.g. `20 OCTOBER 2026` · gap 8 · a rail with that day's rows.
 Gap 18 between groups. Rows are tappable and push details.
 
-### 3.7 Details — `/transactions/:id`
+### 4.7 Details — `/transactions/:id`
 Padding `48 20 24`. Column:
 `AppTopBar("Transaction")` · gap 26 · centred block: a type pill
 (border `1` `line`, radius 999, padding `6 14`, an `8x8` dot — `brand` for
@@ -351,7 +381,7 @@ DATE AND TIME, REMARKS · spacer · secondary `Back to transactions`.
 
 ---
 
-## 4. Rules for the Flutter build
+## 5. Rules for the Flutter build
 
 1. Every colour, size and text style comes from `core/theme`. No literal hex
    or `TextStyle` inside a screen or widget file.

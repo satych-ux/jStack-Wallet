@@ -90,6 +90,11 @@ Plus `core/widgets/shimmer/`: `ShimmerBox`, `ShimmerGroup` (owns the single
 - Every shimmer section is wrapped in a `RepaintBoundary`
 - Golden-free rule: assert colours and styles by reading the widget, not by image
 
+**Abstraction check before T1 is done.** No generics anywhere in
+`core/widgets/`. No abstract widget base classes. No widget takes more than six
+parameters. Variants are enums, not subclasses. If a widget is used by only one
+screen, it belongs in that screen's folder, not `core/widgets/`.
+
 ---
 
 ## T2 — Router
