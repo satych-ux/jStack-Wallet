@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required at runtime: the app talks to the jWallet REST API.
+         Flutter only adds this to the debug manifest, so without it here
+         release builds cannot reach the network. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="j_stack_flutter_app"
+        android:label="jWallet Lite"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

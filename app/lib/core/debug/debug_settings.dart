@@ -21,9 +21,11 @@ enum TransferFault {
 /// the app shows is the backend's own. The exception is [offline]: a phone
 /// with no connection gets no answer at all, so that one fails locally.
 class DebugSettings extends ChangeNotifier {
-  /// Debug builds always; other builds only with
-  /// `--dart-define=DEBUG_PANEL=true`. Release builds never show it.
-  static const bool enabled = kDebugMode || bool.fromEnvironment('DEBUG_PANEL');
+  /// On in every build, release included, so reviewers can trigger the
+  /// error paths from the submitted APK. Turn it off with
+  /// `--dart-define=DEBUG_PANEL=false`.
+  static const bool enabled =
+      bool.fromEnvironment('DEBUG_PANEL', defaultValue: true);
 
   /// How long the "slow server" option asks the backend to wait. Longer
   /// than the app's 10 s receive timeout.

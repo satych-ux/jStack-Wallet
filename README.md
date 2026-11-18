@@ -303,7 +303,7 @@ See `DECISIONS.md` for the reasoning behind each choice.
 
 ### Debug panel (for reviewers)
 
-Debug builds show a small **bug button** on the left edge of every screen. It opens options that make the backend produce its real error paths:
+Every build, release included, shows a small **bug button** on the left edge of every screen. It opens options that make the backend produce its real error paths:
 
 | Option | What you'll see |
 |---|---|
@@ -313,7 +313,7 @@ Debug builds show a small **bug button** on the left edge of every screen. It op
 | Offline | Every screen shows its error state with Retry until switched off |
 | Expire my session | The next request gets a real 401 and the app returns to login |
 
-Transfer options apply to the next transfer only. Insufficient balance and form validation need no switch: send more than the balance, or enter `10.123` as the amount. Other builds can show the panel with `--dart-define=DEBUG_PANEL=true`; release builds never include it.
+Transfer options apply to the next transfer only. Insufficient balance and form validation need no switch: send more than the balance, or enter `10.123` as the amount. To build without the panel, pass `--dart-define=DEBUG_PANEL=false`.
 
 ## API documentation
 
