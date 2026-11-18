@@ -58,10 +58,15 @@ Sign in with `demo@jstack.co` / `Demo@123`.
 
 | Tool | Version |
 |---|---|
-| Flutter | TODO: output of `flutter --version` |
-| Dart | TODO |
+| Flutter | 3.47 or newer (developed on 3.47.9, stable) |
+| Dart | 3.13 (ships with Flutter) |
 | Node.js | 20 or newer (developed on 25.2.1) |
-| Android | TODO: emulator API level / device used |
+| Android | Android Studio with an emulator, or a phone with USB debugging. Tested on an API 36 (Android 16) emulator and a physical Android phone on the same Wi-Fi |
+| iOS | Not tested. It should run on the simulator with `http://localhost:3000/api/v1`; a real iPhone needs Xcode signing |
+
+Nothing else is needed: no accounts, keys or `.env` files. The only value you
+supply is the backend URL (below), and for a physical phone that means your
+computer's **IP address** on the local network, not its MAC address.
 
 ## Backend setup
 
@@ -162,6 +167,10 @@ accepted yet.
 
 ### Running on a physical device
 
+Enable USB debugging once: Settings → About phone → tap **Build number** seven
+times, then Settings → Developer options → **USB debugging** on. Plug the phone
+in and accept the "Allow USB debugging" prompt.
+
 **The phone and the computer must be on the same Wi-Fi network.** The phone
 reaches the backend over the local network, so a computer on Wi-Fi and a phone
 on mobile data will not connect. Corporate or guest networks that isolate
@@ -184,7 +193,11 @@ ipconfig                        # use the IPv4 Address of your Wi-Fi adapter
 Check the phone can reach it before launching — open
 `http://<your-ip>:3000/api/v1/health` in the phone's browser. A JSON response
 means you are set. Nothing at all usually means a firewall on the computer is
-blocking port 3000, or the two devices are on different networks.
+blocking port 3000, or the two devices are on different networks. On macOS,
+allow incoming connections for `node` if the firewall asks.
+
+The IP can change when the computer reconnects to Wi-Fi. If the app suddenly
+can't reach the server, check the IP again and relaunch with the new one.
 
 The backend already binds to `0.0.0.0`, so no change is needed there.
 
@@ -218,15 +231,25 @@ configuration once:
 | "API_BASE_URL is not set" at launch | `--dart-define` missing; a hot restart will not fix it, relaunch |
 | Login spins then fails on an emulator | Used `localhost` instead of `10.0.2.2` |
 | Login spins then fails on a phone | Different networks, wrong IP, or a firewall on port 3000 |
-| Worked, then stopped after a backend restart | State is in memory and resets; sign in again |
+| Balance or history "jumped back" after a backend restart | State is in memory and resets to the seed (₹25,450.75); the session itself stays valid |
 
 ## Running tests
 
 ```bash
-cd backend && npm test
+cd backend && npm test        # 166 tests, all passing
+cd app && flutter analyze     # no issues
 cd app && flutter test
-cd app && flutter analyze
 ```
+
+Status of the Flutter tests, stated plainly: the theme, widget, validator,
+network-core (W0) and auth (W1) tests were run and passed during the build.
+The tests added later (wallet, transactions, the debug panel, and the
+`TransferBloc` tests for insufficient balance and a successful transfer) were
+written but not run, at the author's choice; the wiring was verified instead by
+driving the running app against the live backend. Two widget-level files
+(`app_test.dart`, `router_test.dart`) were removed because they hung inside
+`flutter test` (an `AuthBloc.close()` that never completes under the test
+clock). See `DECISIONS.md` row 151.
 
 ## Building the APK
 
@@ -248,7 +271,33 @@ against the target it was built for. Install with
 
 ## Architecture
 
-TODO: layering summary (presentation / domain / data), state management choice, folder map.
+Feature-first folders, each split into three layers:
+
+```
+app/lib/
+  core/              theme, shared widgets, router, DI, network, errors, debug panel
+  features/
+    auth/            login, session (secure storage), AuthBloc
+    wallet/          dashboard: profile, balance, recent activity (WalletBloc)
+    transactions/    history and details (TransactionsBloc, TransactionDetailsBloc)
+    transfer/        send money, confirm, result (TransferBloc)
+      data/          models (json_serializable), remote data sources, repository impls
+      domain/        entities, repository interfaces, validators (pure Dart)
+      presentation/  blocs, view models, screens, widgets
+```
+
+- **State management: Bloc.** One bloc per feature; screens read only what they
+  need (the dashboard has one `BlocSelector` per section, so a section rebuilds
+  only when its own data changes).
+- **Network:** one `Dio`, an auth interceptor (bearer token; a 401 for the
+  current token signs out), typed `Failure`s, and repositories that return
+  `Result<T>` instead of throwing.
+- **Money:** the backend owns the balance. The app formats amounts and never
+  adds, subtracts or caches a balance; after a transfer the dashboard reloads it.
+- **Transfers:** each attempt carries an `Idempotency-Key`; a retry of the same
+  attempt reuses it, so a timeout can never charge twice.
+- **Navigation:** go_router with seven flat routes and an auth guard driven by
+  `AuthBloc`.
 
 See `DECISIONS.md` for the reasoning behind each choice.
 
@@ -273,7 +322,6 @@ Transfer options apply to the next transfer only. Insufficient balance and form 
 
 ## Known limitations
 
-TODO. Candidates to document:
 - Backend state is in-memory and resets on restart.
 - The backend accepts only the fixed token `mock_access_token_123`, with no expiry. The demo password is stored in plain text in `seed.json`.
 - Idempotency keys are kept in memory for the life of the process, with no expiry, and are global rather than per user (there is one user).
@@ -284,10 +332,21 @@ TODO. Candidates to document:
 - Transaction search and filtering are applied client-side over the fetched list.
 - Add Money is a UI stub, as the assignment specifies.
 - Single backend process; concurrency safety relies on that.
+- Some Flutter tests were not run, and two widget-level test files were removed (see "Running tests").
+- iOS was not tested.
+- No `BlocObserver` is registered, so bloc transitions are not logged.
 
 ## AI-assisted development disclosure
 
-TODO: list the components that were substantially AI-generated, and confirm that all submitted code has been reviewed and is explainable.
+This project was built with an AI coding assistant. The backend, the Flutter
+app, the tests, the API collection and much of this README were generated with
+it, task by task, following `SPEC.md`, `DESIGN.md` and the task files; each
+task was reviewed in a separate critic pass before the next began. The log
+below lists what was generated in each task. Every non-obvious choice is
+recorded with its reason in `DECISIONS.md`.
+
+**Author's confirmation:** _(to be written by the author: that all submitted
+code has been reviewed and can be explained)_
 
 AI-generated so far (log, kept up to date per task):
 
@@ -314,4 +373,5 @@ AI-generated so far (log, kept up to date per task):
 - Wiring W1–W4: the auth, wallet, transactions and transfer data layers (models, data sources, repositories), `core/error/{result,guard}.dart`, `core/network/envelope.dart`, `core/presentation/{formatters,failure_message}.dart`, `AuthBloc`, `WalletBloc`, `TransactionsBloc`, `TransactionDetailsBloc`, `TransferBloc`, `AvailableBalanceCubit`, the router and `main.dart` rewiring, the avatar sign-out, and the tests under `test/features/{auth,transfer}/` and `test/helpers/`.
 - Debug panel: `app/lib/core/debug/{debug_settings,debug_interceptor,debug_panel}.dart`, its wiring in `injector.dart` and `main.dart`, and the `scrim` colour.
 
-Tooling used: TODO.
+Tooling used: Claude Code (Anthropic), with the Dart and Flutter MCP tools for
+analysis and hot reload, and the Bruno CLI to run the API collection.
