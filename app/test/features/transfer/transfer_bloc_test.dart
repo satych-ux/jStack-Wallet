@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:j_stack_flutter_app/core/error/failure.dart';
@@ -93,13 +95,26 @@ void main() {
     verify: (_) => verify(() => repository.transfer(any(), idempotencyKey: 'key-1')).called(2),
   );
 
+  // The backend holds its answer until the second tap has arrived, so the
+  // first submit is still in flight: an instant answer would let the first
+  // finish before the second is handled, and the test would prove nothing.
+  late Completer<Result<TransferResult>> pending;
   blocTest<TransferBloc, TransferState>(
     'droppable: two rapid submits produce one repository call',
-    setUp: () => answer(Ok(_captured)),
+    setUp: () {
+      pending = Completer();
+      when(
+        () => repository.transfer(any(), idempotencyKey: any(named: 'idempotencyKey')),
+      ).thenAnswer((_) => pending.future);
+    },
     build: () => TransferBloc(repository: repository, attempt: _attempt),
-    act: (bloc) => bloc
-      ..add(const TransferSubmitted())
-      ..add(const TransferSubmitted()),
+    act: (bloc) async {
+      bloc.add(const TransferSubmitted());
+      await bloc.stream.firstWhere((s) => s.phase == TransferPhase.submitting);
+      bloc.add(const TransferSubmitted());
+      await Future<void>.delayed(Duration.zero);
+      pending.complete(Ok(_captured));
+    },
     verify: (_) => verify(() => repository.transfer(any(), idempotencyKey: any(named: 'idempotencyKey'))).called(1),
   );
 }
