@@ -1,0 +1,1 @@
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Invalid transfer details","fields":{"beneficiaryName":"Beneficiary name is required","mobileNumber":"Mobile number must be exactly 10 digits","amount":"Amount can have at most 2 decimal places","remarks":"Remarks must be text"}}}

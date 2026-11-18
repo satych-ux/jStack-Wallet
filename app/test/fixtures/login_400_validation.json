@@ -1,0 +1,1 @@
+{"success":false,"error":{"code":"VALIDATION_ERROR","message":"Email and password are required","fields":{"email":"Email is required","password":"Password is required"}}}

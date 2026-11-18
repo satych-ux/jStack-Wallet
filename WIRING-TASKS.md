@@ -103,6 +103,18 @@ transaction_404.json
 
 ## W1 — Auth, session and the route guard
 
+**Carried from the W0 critic pass:**
+- Nothing may resolve `Dio` (or a repository that needs it) eagerly at startup
+  or in `main`: without `--dart-define=API_BASE_URL` that throws before
+  `runApp`. Keep registrations lazy.
+- Register the session data source **once**, under both its own type and
+  `TokenStore` (the interceptor reads and clears it), not as two instances.
+- `AuthBloc` must subscribe to `SessionExpiredSignal.stream` before the first
+  authenticated call; it is a broadcast stream and drops events nobody hears.
+- Handling a sign-out twice must be harmless (logout is idempotent).
+- Widget tests that pump `JWalletApp` will need DI set up once real
+  repositories are read from GetIt.
+
 **Build**
 - `auth/data/models/` — `UserModel`, `LoginResponseModel` via `json_serializable`
 - `auth/data/datasources/auth_remote_data_source.dart`
@@ -129,6 +141,11 @@ transaction_404.json
 ---
 
 ## W2 — Wallet and the dashboard's three sections
+
+**Carried from the W0 critic pass:** parse money as
+`(json['availableBalance'] as num).toDouble()`, never `as double`: JSON sends
+whole rupees as an int. `balance_whole_rupees.json` (`"availableBalance":23950`)
+is the captured fixture for the "parses from a bare integer" test.
 
 **Build** `wallet/data/models/` (`WalletModel`, `ProfileModel`),
 remote data source, repository impl, `WalletBloc` producing three
@@ -171,6 +188,11 @@ Delete `fake_transactions_repository.dart`.
 ---
 
 ## W4 — Transfer, idempotency, and the two mandatory tests
+
+**Carried from the W0 critic pass:** a missing or doubled `Idempotency-Key`
+comes back as `ValidationFailure` with **empty** `fields`
+(`transfer_400_missing_key.json`). It is an app bug, not user input, so the
+transfer UI needs a generic message for that case, not field errors.
 
 **Build** `TransferRequestModel`, `TransferResultModel`, remote data source
 sending the `Idempotency-Key` header, repository impl, `TransferBloc` with
