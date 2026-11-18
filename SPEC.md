@@ -160,6 +160,20 @@ Required (mandatory):
 - TST-03: Insufficient balance handled in the transfer flow (TRF-07/08).
 - TST-04: Successful transfer state update (TRF-06/09).
 
+> **Open gap, carry this forward.** After the UI slice, TST-01 and TST-02 are
+> fully covered by the validator unit tests. TST-03 and TST-04 are covered
+> only as *widget* tests — they prove the screens render the right thing when
+> handed a state, not that the app produces that state. The graders read these
+> as state-management tests.
+>
+> **When blocs land, add `TransferBloc` tests against a mocked repository:**
+> - idle → submitting → failure(InsufficientBalance) when the repository
+>   returns 409, and the balance in state is unchanged (TST-03)
+> - idle → submitting → success, and the wallet section is invalidated so the
+>   balance is refetched rather than computed locally (TST-04)
+>
+> Do not mark the transfer wiring slice done until both exist.
+
 Backend (add):
 - TST-05: Idempotency — same key, same payload → one deduction (API-10).
 - TST-06: Idempotency — same key, different payload → 409 (API-11).
