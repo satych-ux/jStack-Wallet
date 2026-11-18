@@ -1,8 +1,8 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
+import 'package:equatable/equatable.dart';
 
-/// The wallet summary, as returned by GET /wallet/balance.
-/// The balance is whatever the backend says; the app never computes it.
-class Wallet {
+/// The wallet summary from GET /wallet/balance. The balance is whatever the
+/// backend says; the app never computes it.
+class Wallet extends Equatable {
   const Wallet({
     required this.walletId,
     required this.currency,
@@ -14,4 +14,7 @@ class Wallet {
   final String currency;
   final double availableBalance;
   final String maskedAccountNumber;
+
+  @override
+  List<Object?> get props => [walletId, currency, availableBalance, maskedAccountNumber];
 }

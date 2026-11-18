@@ -10,6 +10,50 @@ A lightweight digital wallet built for the jStack Flutter Developer assignment: 
 
 ---
 
+## Quick start
+
+Two terminals. The backend must be running before the app launches.
+
+**Terminal 1 — backend**
+
+```bash
+cd backend
+npm install
+npm start            # listens on 0.0.0.0:3000
+```
+
+**Terminal 2 — app**
+
+```bash
+cd app
+flutter pub get
+flutter devices      # note the id of the emulator or phone you want
+```
+
+Then pick the line that matches your target:
+
+```bash
+# Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1
+
+# Physical Android device (replace the IP — see "Finding your IP" below)
+flutter run --dart-define=API_BASE_URL=http://192.168.1.36:3000/api/v1
+
+# iOS simulator
+flutter run --dart-define=API_BASE_URL=http://localhost:3000/api/v1
+```
+
+Add `-d <device-id>` if more than one device is connected.
+
+Sign in with `demo@jstack.co` / `Demo@123`.
+
+> **`--dart-define` is required.** The app checks for it at launch and stops
+> with "API_BASE_URL is not set" rather than failing later with a confusing
+> network error. The value is baked in at build time, so a hot restart will not
+> pick up a change — stop the app and run `flutter run` again.
+
+---
+
 ## Prerequisites
 
 | Tool | Version |
@@ -81,33 +125,100 @@ curl -s $S      -H "$AUTH" -H 'Content-Type: application/json' -H "Idempotency-K
 
 The first request prints `[HTTP 000]`: curl gave up before any response came. The second returns the stored transfer (the same `transactionId` the first one created), and the balance dropped once. `uuidgen` ships with macOS and most Linux distributions; any unique string works as a key.
 
-## Application setup
+## Running the app in detail
 
-```bash
-cd app
-flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1
-```
+### 1. Start the backend first
 
-### API base URL configuration
+The app has no offline mode and no bundled data — every screen loads from the
+API. Start `npm start` in `backend/` and leave it running.
 
-The base URL is injected at build time with `--dart-define`; nothing is hardcoded and no secrets are committed.
+### 2. Choose the base URL for your target
 
-| Target | Value |
+The base URL is injected at build time with `--dart-define`; nothing is
+hardcoded and no secrets are committed.
+
+| Target | `API_BASE_URL` |
 |---|---|
 | Android emulator | `http://10.0.2.2:3000/api/v1` |
-| Physical Android device | `http://<your-machine-LAN-IP>:3000/api/v1` |
+| Physical Android device | `http://<your-computer-LAN-IP>:3000/api/v1` |
 | iOS simulator | `http://localhost:3000/api/v1` |
 
-The emulator reaches the host machine at `10.0.2.2`, not `localhost`. Debug builds permit cleartext HTTP so the local backend is reachable; release builds would require HTTPS.
+An Android emulator cannot see `localhost` — that address is the emulator
+itself. `10.0.2.2` is the emulator's alias for the host machine.
 
-For a physical device, the phone and the computer must be on the same network, and the backend must bind to `0.0.0.0`.
+### 3. Find your device id
+
+```bash
+flutter devices
+```
+
+The id is the second column: a serial such as `RZ8M802ABCD` for a phone,
+`emulator-5554` for an emulator. Pass it with `-d`, or omit `-d` entirely when
+only one device is connected.
+
+If a connected phone does not appear, run `adb devices`. A line reading
+`unauthorized` means the USB-debugging prompt on the phone has not been
+accepted yet.
+
+### Running on a physical device
+
+**The phone and the computer must be on the same Wi-Fi network.** The phone
+reaches the backend over the local network, so a computer on Wi-Fi and a phone
+on mobile data will not connect. Corporate or guest networks that isolate
+clients from each other will also block it; a phone hotspot that the computer
+joins is the usual workaround.
+
+#### Finding your IP
+
+```bash
+# macOS
+ipconfig getifaddr en0          # Wi-Fi; try en1 if that returns nothing
+
+# Linux
+hostname -I | awk '{print $1}'
+
+# Windows
+ipconfig                        # use the IPv4 Address of your Wi-Fi adapter
+```
+
+Check the phone can reach it before launching — open
+`http://<your-ip>:3000/api/v1/health` in the phone's browser. A JSON response
+means you are set. Nothing at all usually means a firewall on the computer is
+blocking port 3000, or the two devices are on different networks.
+
+The backend already binds to `0.0.0.0`, so no change is needed there.
 
 ### Demo credentials
 
 | Email | Password |
 |---|---|
 | `demo@jstack.co` | `Demo@123` |
+
+### Running from an IDE
+
+The Run button does not pass `--dart-define`, so add it to the run
+configuration once:
+
+- **VS Code** — in `.vscode/launch.json`, add to your configuration:
+
+  ```json
+  "args": ["--dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1"]
+  ```
+
+- **Android Studio** — Run → Edit Configurations → Additional run args:
+
+  ```
+  --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1
+  ```
+
+### Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| "API_BASE_URL is not set" at launch | `--dart-define` missing; a hot restart will not fix it, relaunch |
+| Login spins then fails on an emulator | Used `localhost` instead of `10.0.2.2` |
+| Login spins then fails on a phone | Different networks, wrong IP, or a firewall on port 3000 |
+| Worked, then stopped after a backend restart | State is in memory and resets; sign in again |
 
 ## Running tests
 
@@ -121,15 +232,39 @@ cd app && flutter analyze
 
 ```bash
 cd app
+
+# for an emulator
 flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1
+
+# for a physical device, use your computer's LAN IP
+flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.36:3000/api/v1
+
 # output: build/app/outputs/flutter-apk/app-debug.apk
 ```
+
+The base URL is fixed when the APK is built, so a prebuilt APK only works
+against the target it was built for. Install with
+`adb install -r build/app/outputs/flutter-apk/app-debug.apk`.
 
 ## Architecture
 
 TODO: layering summary (presentation / domain / data), state management choice, folder map.
 
 See `DECISIONS.md` for the reasoning behind each choice.
+
+### Debug panel (for reviewers)
+
+Debug builds show a small **bug button** on the left edge of every screen. It opens options that make the backend produce its real error paths:
+
+| Option | What you'll see |
+|---|---|
+| Slow server (timeout) | The transfer goes through on the server but the app times out ("NOT CONFIRMED"). **Try again** reuses the same Idempotency-Key and returns the original result: one deduction. |
+| Reuse the last transfer's key | 409 `IDEMPOTENCY_KEY_REUSED`, nothing debited (make one successful transfer first) |
+| Drop the Idempotency-Key | 400, nothing debited |
+| Offline | Every screen shows its error state with Retry until switched off |
+| Expire my session | The next request gets a real 401 and the app returns to login |
+
+Transfer options apply to the next transfer only. Insufficient balance and form validation need no switch: send more than the balance, or enter `10.123` as the amount. Other builds can show the panel with `--dart-define=DEBUG_PANEL=true`; release builds never include it.
 
 ## API documentation
 
@@ -176,5 +311,7 @@ AI-generated so far (log, kept up to date per task):
 - Backend B5: `backend/test/concurrency.test.js` (no production code changed). B5 critic fixes: the connection warm-up and the tightened assertions in the same file.
 - Backend B6: `src/middleware/latency.js`, `backend/test/latency.test.js`, `backend/test/errorShape.test.js`, the Bruno collection in `api/bruno/`, and the backend sections of this README. B6 critic fixes: the send guards and digits-only parsing in `latency.js`, and the reworked timing tests.
 - Wiring W0: `scripts/capture-fixtures.sh`, `app/lib/core/config/app_config.dart`, `core/error/{failure,api_error,failure_mapper}.dart`, `core/network/{dio_client,auth_interceptor,token_store,session_expired_signal}.dart`, `core/di/injector.dart`, the `configureDependencies()` call in `main.dart`, and the tests in `app/test/core/{error,network,di}/` plus `test/helpers/fixtures.dart`. The fixtures in `app/test/fixtures/` were captured from the running backend, not written. W0 critic fixes: the all-or-nothing capture script with five more fixtures, the public-path and once-only 401 handling in `auth_interceptor.dart`, and the added interceptor, mapper and injector tests.
+- Wiring W1–W4: the auth, wallet, transactions and transfer data layers (models, data sources, repositories), `core/error/{result,guard}.dart`, `core/network/envelope.dart`, `core/presentation/{formatters,failure_message}.dart`, `AuthBloc`, `WalletBloc`, `TransactionsBloc`, `TransactionDetailsBloc`, `TransferBloc`, `AvailableBalanceCubit`, the router and `main.dart` rewiring, the avatar sign-out, and the tests under `test/features/{auth,transfer}/` and `test/helpers/`.
+- Debug panel: `app/lib/core/debug/{debug_settings,debug_interceptor,debug_panel}.dart`, its wiring in `injector.dart` and `main.dart`, and the `scrim` colour.
 
 Tooling used: TODO.

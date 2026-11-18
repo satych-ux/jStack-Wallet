@@ -7,6 +7,9 @@ import 'package:flutter/painting.dart';
 abstract final class AppColors {
   // Text and surfaces
   static const Color ink = Color(0xFF0F0F0F);
+
+  /// Dims the screen behind the debug panel: [ink] at 40%.
+  static const Color scrim = Color(0x660F0F0F);
   static const Color inkMuted = Color(0xFF6A6A6A);
   static const Color inkFaint = Color(0xFF767676);
   static const Color line = Color(0xFFE3E3E3);

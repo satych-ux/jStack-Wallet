@@ -7,12 +7,7 @@ import '../config/app_config.dart';
 /// the same Idempotency-Key.
 Dio createDio(AppConfig config, {List<Interceptor> interceptors = const []}) {
   if (config.baseUrl.isEmpty) {
-    throw StateError(
-      'API_BASE_URL is not set. Run with --dart-define=API_BASE_URL=<url>, e.g. '
-      'http://10.0.2.2:3000/api/v1 (Android emulator), '
-      'http://<your-computer-LAN-IP>:3000/api/v1 (physical device), '
-      'http://localhost:3000/api/v1 (iOS simulator).',
-    );
+    throw StateError(AppConfig.missingBaseUrlMessage);
   }
   final dio = Dio(
     BaseOptions(

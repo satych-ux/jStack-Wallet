@@ -24,8 +24,17 @@ const insufficient = TransferFailedView(
 );
 
 class Calls {
-  int dashboard = 0, view = 0, retry = 0;
+  int dashboard = 0, view = 0, retry = 0, edit = 0;
 }
+
+/// An unknown outcome: the one kind of failure a retry can fix.
+const timedOut = TransferFailedView(
+  reason: 'NOT CONFIRMED',
+  explanation: 'The wallet did not answer in time.',
+  beneficiaryName: 'Zed Q Tester',
+  subtitle: 'We could not confirm the transfer.',
+  canRetry: true,
+);
 
 Future<Calls> pumpResult(
   WidgetTester tester,
@@ -46,6 +55,7 @@ Future<Calls> pumpResult(
         onBackToDashboard: () => calls.dashboard++,
         onViewTransaction: () => calls.view++,
         onTryAgain: () => calls.retry++,
+        onEditTransfer: () => calls.edit++,
       ),
     ),
   );
@@ -145,8 +155,18 @@ void main() {
       );
     });
 
-    testWidgets('Try again and Back to dashboard both fire', (tester) async {
+    testWidgets('insufficient balance offers Edit transfer, not a retry that would fail again', (tester) async {
       final calls = await pumpResult(tester, insufficient);
+
+      expect(button('Try again'), findsNothing);
+      await tester.tap(button('Edit transfer'));
+      await tester.tap(button('Back to dashboard'));
+
+      expect((calls.edit, calls.retry, calls.dashboard), (1, 0, 1));
+    });
+
+    testWidgets('Try again and Back to dashboard both fire', (tester) async {
+      final calls = await pumpResult(tester, timedOut);
 
       await tester.tap(button('Try again'));
       await tester.tap(button('Back to dashboard'));
@@ -158,7 +178,7 @@ void main() {
     testWidgets('while retrying, Try again spins and ignores taps', (
       tester,
     ) async {
-      final calls = await pumpResult(tester, insufficient, isRetrying: true);
+      final calls = await pumpResult(tester, timedOut, isRetrying: true);
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       await tester.tap(find.byType(JWalletButton).first);

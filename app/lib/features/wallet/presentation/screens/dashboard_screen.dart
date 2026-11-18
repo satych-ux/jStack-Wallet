@@ -4,50 +4,77 @@ import '../../../../core/presentation/section.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/balance_panel.dart';
-import '../../../../core/widgets/error_state_view.dart';
 import '../../../../core/widgets/quick_action_card.dart';
-import '../../../../core/widgets/shimmer/balance_panel_shimmer.dart';
-import '../../../../core/widgets/shimmer/shimmer_box.dart';
 import '../../../../core/widgets/transaction_row.dart';
 import '../models/dashboard_models.dart';
+import '../widgets/balance_section.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/recent_activity.dart';
 
 /// Wallet dashboard (WAL-01..06).
 ///
-/// Profile, balance and recent activity are three [Section]s that load
-/// independently: each shimmers, loads or fails on its own. Every section
-/// defaults to loading, so the screen renders standalone with no data.
+/// Profile, balance and recent activity load independently, so the screen
+/// takes each as its own slot widget. The app builds every slot inside its
+/// own `BlocSelector`: a balance update rebuilds the balance panel only,
+/// never the header, the transaction list or this scaffold.
+/// [DashboardScreen.fromSections] builds the same slots from plain sections.
 /// Quick actions never wait for data.
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
-    this.profile = const SectionLoading(),
-    this.balance = const SectionLoading(),
-    this.recent = const SectionLoading(),
+    required this.header,
+    required this.balancePanel,
+    required this.recentActivity,
     required this.onRefresh,
     required this.onSendMoney,
     required this.onHistory,
-    required this.onSeeAll,
-    required this.onTransactionTap,
-    required this.onRetryBalance,
-    required this.onRetryTransactions,
   });
 
-  final Section<ProfileView> profile;
-  final Section<BalanceView> balance;
-  final Section<List<TransactionRowData>> recent;
+  /// The slots built straight from sections, for when nothing needs
+  /// selective rebuilds (tests, previews). Every section defaults to
+  /// loading, so the screen renders standalone with no data.
+  factory DashboardScreen.fromSections({
+    Key? key,
+    Section<ProfileView> profile = const SectionLoading(),
+    Section<BalanceView> balance = const SectionLoading(),
+    Section<List<TransactionRowData>> recent = const SectionLoading(),
+    required Future<void> Function() onRefresh,
+    required VoidCallback onSendMoney,
+    required VoidCallback onHistory,
+    required VoidCallback onSeeAll,
+    required void Function(String reference) onTransactionTap,
+    required VoidCallback onRetryBalance,
+    required VoidCallback onRetryTransactions,
+    VoidCallback? onSignOut,
+  }) => DashboardScreen(
+    key: key,
+    header: DashboardHeader(profile: profile, onSignOut: onSignOut),
+    balancePanel: BalanceSection(balance: balance, onRetry: onRetryBalance),
+    recentActivity: RecentActivity(
+      recent: recent,
+      onSeeAll: onSeeAll,
+      onTransactionTap: onTransactionTap,
+      onRetry: onRetryTransactions,
+    ),
+    onRefresh: onRefresh,
+    onSendMoney: onSendMoney,
+    onHistory: onHistory,
+  );
+
+  /// Usually a [DashboardHeader].
+  final Widget header;
+
+  /// Usually a [BalanceSection].
+  final Widget balancePanel;
+
+  /// Usually a [RecentActivity].
+  final Widget recentActivity;
 
   /// Pull-to-refresh. The caller keeps the sections loaded while this runs,
   /// so content stays on screen; the indicator shows progress.
   final Future<void> Function() onRefresh;
   final VoidCallback onSendMoney;
   final VoidCallback onHistory;
-  final VoidCallback onSeeAll;
-  final void Function(String reference) onTransactionTap;
-  final VoidCallback onRetryBalance;
-  final VoidCallback onRetryTransactions;
 
   static const double _quickActionGap = 10;
 
@@ -75,23 +102,9 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 sliver: SliverList.list(
                   children: [
-                    DashboardHeader(profile: profile),
+                    header,
                     const SizedBox(height: AppSpacing.s22),
-                    switch (balance) {
-                      SectionLoading() => const ShimmerGroup(
-                        child: BalancePanelShimmer(),
-                      ),
-                      SectionLoaded(:final data) => BalancePanel(
-                        balance: data.balance,
-                        walletId: data.walletId,
-                        maskedAccount: data.maskedAccount,
-                      ),
-                      SectionFailed(:final message) => ErrorStateView(
-                        title: 'Could not load your balance',
-                        message: message,
-                        onRetry: onRetryBalance,
-                      ),
-                    },
+                    balancePanel,
                     const SizedBox(height: AppSpacing.s18),
                     Row(
                       children: [
@@ -121,12 +134,7 @@ class DashboardScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: _activityTopGap),
-                    RecentActivity(
-                      recent: recent,
-                      onSeeAll: onSeeAll,
-                      onTransactionTap: onTransactionTap,
-                      onRetry: onRetryTransactions,
-                    ),
+                    recentActivity,
                   ],
                 ),
               ),

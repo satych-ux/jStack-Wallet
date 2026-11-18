@@ -1,12 +1,12 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
-
+import '../../../../core/error/result.dart';
 import '../entities/transfer_request.dart';
 import '../entities/transfer_result.dart';
 
-abstract class TransferRepository {
-  /// [idempotencyKey] is generated when the confirmation screen opens and
-  /// reused on every retry of the same attempt.
-  Future<TransferResult> transfer(
+abstract interface class TransferRepository {
+  /// Sends one transfer attempt. Retrying the same attempt must pass the
+  /// same [idempotencyKey]; the backend then returns the original result
+  /// instead of deducting twice.
+  Future<Result<TransferResult>> transfer(
     TransferRequest request, {
     required String idempotencyKey,
   });

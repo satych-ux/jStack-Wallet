@@ -1,7 +1,8 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
+import 'package:equatable/equatable.dart';
 
-/// What the user typed on Send money, sent to POST /transactions/transfer.
-class TransferRequest {
+/// What POST /transactions/transfer sends. [amount] is the number the user
+/// typed, already validated to at most 2 decimals; the app never changes it.
+class TransferRequest extends Equatable {
   const TransferRequest({
     required this.beneficiaryName,
     required this.mobileNumber,
@@ -11,6 +12,9 @@ class TransferRequest {
 
   final String beneficiaryName;
   final String mobileNumber;
-  final double amount;
+  final num amount;
   final String? remarks;
+
+  @override
+  List<Object?> get props => [beneficiaryName, mobileNumber, amount, remarks];
 }

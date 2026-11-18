@@ -20,6 +20,7 @@ class TransferResultScreen extends StatelessWidget {
     required this.onBackToDashboard,
     required this.onViewTransaction,
     required this.onTryAgain,
+    required this.onEditTransfer,
   });
 
   final TransferResultView result;
@@ -31,8 +32,14 @@ class TransferResultScreen extends StatelessWidget {
   /// Success only.
   final VoidCallback onViewTransaction;
 
-  /// Failure only. Retries with the same Idempotency-Key.
+  /// Failure only, when [TransferFailedView.canRetry]. Retries with the
+  /// same Idempotency-Key.
   final VoidCallback onTryAgain;
+
+  /// Failure only, when retrying can't help (e.g. insufficient balance):
+  /// back to the form with the details filled in. Submitting it is a new
+  /// transfer with a new key.
+  final VoidCallback onEditTransfer;
 
   static const double _haloSize = 76;
   static const double _iconSize = 32;
@@ -116,14 +123,20 @@ class TransferResultScreen extends StatelessWidget {
                         },
                         const SizedBox(height: AppSpacing.s18),
                         Text(
-                          isSuccess
-                              ? 'The balance above came back from the transfer '
-                                    'response. The dashboard refetches it rather '
-                                    'than calculating it locally.'
-                              : 'Retrying reuses the same request key, so a '
-                                    'transfer that actually succeeded on the '
-                                    'server will return its original result '
-                                    'instead of debiting again.',
+                          switch (result) {
+                            TransferSucceededView() =>
+                              'The balance above came back from the transfer '
+                                  'response. The dashboard refetches it rather '
+                                  'than calculating it locally.',
+                            TransferFailedView(canRetry: true) =>
+                              'Retrying reuses the same request key, so a '
+                                  'transfer that actually succeeded on the '
+                                  'server will return its original result '
+                                  'instead of debiting again.',
+                            TransferFailedView() =>
+                              'Edit the transfer to change it. Sending it '
+                                  'again is a new request with a new key.',
+                          },
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.inkFaint,
                           ),
@@ -142,6 +155,18 @@ class TransferResultScreen extends StatelessWidget {
   }
 
   List<Widget> _buttons(bool isSuccess) {
+    final result = this.result;
+    if (result is TransferFailedView && !result.canRetry) {
+      return [
+        JWalletButton(label: 'Edit transfer', onPressed: onEditTransfer),
+        const SizedBox(height: AppSpacing.s10),
+        JWalletButton(
+          label: 'Back to dashboard',
+          onPressed: onBackToDashboard,
+          variant: JWalletButtonVariant.secondary,
+        ),
+      ];
+    }
     if (isSuccess) {
       return [
         JWalletButton(label: 'Back to dashboard', onPressed: onBackToDashboard),

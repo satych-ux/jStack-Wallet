@@ -8,6 +8,9 @@ import 'package:j_stack_flutter_app/core/di/injector.dart';
 import 'package:j_stack_flutter_app/core/network/auth_interceptor.dart';
 import 'package:j_stack_flutter_app/core/network/session_expired_signal.dart';
 import 'package:j_stack_flutter_app/core/network/token_store.dart';
+import 'package:j_stack_flutter_app/features/auth/data/datasources/session_local_data_source.dart';
+import 'package:j_stack_flutter_app/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:j_stack_flutter_app/features/auth/domain/repositories/auth_repository.dart';
 
 import '../../helpers/fixtures.dart';
 
@@ -46,14 +49,16 @@ void main() {
     expect(getIt<SessionExpiredSignal>(), same(getIt<SessionExpiredSignal>()));
   });
 
-  test('Dio is lazy: registering it needs no token store yet', () {
-    expect(getIt.isRegistered<TokenStore>(), isFalse);
-    expect(getIt.isRegistered<Dio>(), isTrue);
+  test('the session data source is one instance, reachable as itself and as TokenStore', () {
+    expect(getIt<TokenStore>(), same(getIt<SessionLocalDataSource>()));
   });
 
-  test('once a token store is registered, Dio resolves as one configured instance with the auth interceptor', () {
-    getIt.registerSingleton<TokenStore>(_OneToken());
+  test('the auth repository resolves on the registered stack', () {
+    expect(getIt<AuthRepository>(), isA<AuthRepositoryImpl>());
+    expect(getIt<AuthRepository>(), same(getIt<AuthRepository>()));
+  });
 
+  test('Dio resolves as one configured instance with the auth interceptor', () {
     final dio = getIt<Dio>();
 
     expect(dio, same(getIt<Dio>()));
@@ -63,7 +68,9 @@ void main() {
 
   test('a 401 through the registered Dio clears the token and fires the registered signal', () async {
     final store = _OneToken();
-    getIt.registerSingleton<TokenStore>(store);
+    getIt
+      ..unregister<TokenStore>()
+      ..registerSingleton<TokenStore>(store);
     final dio = getIt<Dio>()..httpClientAdapter = _Always401();
     final fired = getIt<SessionExpiredSignal>().stream.first;
 

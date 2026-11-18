@@ -35,7 +35,15 @@ final class TransferFailedView extends TransferResultView {
     this.subtitle = 'Your wallet was not debited. Nothing has changed.',
     this.statusCode,
     this.balance,
+    this.canRetry = false,
   });
+
+  /// True only when the outcome is unknown or temporary (timeout, no
+  /// connection, server error): resending the same request, with the same
+  /// key, can then succeed or return the original result. A definite refusal
+  /// (insufficient balance, invalid details, key reused) would only be
+  /// refused again, so the screen offers to edit the transfer instead.
+  final bool canRetry;
 
   /// Uppercase headline of the banner, e.g. `INSUFFICIENT BALANCE`.
   final String reason;

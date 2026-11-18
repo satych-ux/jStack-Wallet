@@ -62,7 +62,7 @@ Future<Taps> pumpDashboard(
   await tester.pumpWidget(
     MaterialApp(
       theme: appTheme,
-      home: DashboardScreen(
+      home: DashboardScreen.fromSections(
         profile: profile,
         balance: balance,
         recent: recent ?? SectionLoaded(rows(5)),

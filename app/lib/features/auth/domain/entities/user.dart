@@ -1,10 +1,13 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
+import 'package:equatable/equatable.dart';
 
-/// The signed-in user, as returned by POST /auth/login.
-class User {
+/// The signed-in user, as the backend describes them.
+class User extends Equatable {
   const User({required this.id, required this.name, required this.email});
 
   final String id;
   final String name;
   final String email;
+
+  @override
+  List<Object?> get props => [id, name, email];
 }

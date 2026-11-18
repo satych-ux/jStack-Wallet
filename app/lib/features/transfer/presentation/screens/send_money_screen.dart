@@ -20,9 +20,13 @@ class SendMoneyScreen extends StatefulWidget {
   const SendMoneyScreen({
     super.key,
     this.availableBalance = const SectionLoading(),
+    this.initialDraft,
     required this.onSubmit,
     required this.onBack,
   });
+
+  /// Pre-fills the form, e.g. when editing a transfer the backend refused.
+  final TransferDraft? initialDraft;
 
   /// Formatted, e.g. `₹25,450.75`.
   final Section<String> availableBalance;
@@ -48,6 +52,12 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialDraft case final draft?) {
+      _controllers[_Field.amount]!.text = draft.amount;
+      _controllers[_Field.beneficiary]!.text = draft.beneficiaryName;
+      _controllers[_Field.mobile]!.text = draft.mobileNumber;
+      _controllers[_Field.remarks]!.text = draft.remarks ?? '';
+    }
     // An error goes away as soon as the user edits the field it is about.
     for (final field in _Field.values) {
       _controllers[field]!.addListener(() {

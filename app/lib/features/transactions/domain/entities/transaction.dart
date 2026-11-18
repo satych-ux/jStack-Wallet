@@ -1,12 +1,17 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
+import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+/// JSON values are the backend's upper-case names (`DEBIT`, `CREDIT`).
+@JsonEnum(fieldRename: FieldRename.screamingSnake)
 enum TransactionType { debit, credit }
 
+/// JSON values are `SUCCESS`, `PENDING`, `FAILED`.
+@JsonEnum(fieldRename: FieldRename.screamingSnake)
 enum TransactionStatus { success, pending, failed }
 
 /// One row of GET /transactions, or the body of GET /transactions/:id.
-/// [id] is the reference shown to the user (e.g. TXN10001).
-class Transaction {
+/// [id] is also the reference shown to the user (e.g. TXN10001).
+class Transaction extends Equatable {
   const Transaction({
     required this.id,
     required this.type,
@@ -30,4 +35,7 @@ class Transaction {
   final String mobileNumber;
   final DateTime createdAt;
   final String? remarks;
+
+  @override
+  List<Object?> get props => [id, type, status, amount, currency, name, mobileNumber, createdAt, remarks];
 }

@@ -1,7 +1,10 @@
 import 'package:intl/intl.dart';
 
+import '../../../../core/presentation/formatters.dart';
 import '../../../../core/widgets/status_label.dart';
 import '../../../../core/widgets/transaction_row.dart';
+import '../../domain/entities/transaction.dart';
+import 'transaction_display.dart';
 
 /// One transaction as the history screen receives it.
 class HistoryEntry {
@@ -13,6 +16,15 @@ class HistoryEntry {
     required this.status,
     required this.createdAt,
   });
+
+  factory HistoryEntry.fromTransaction(Transaction t) => HistoryEntry(
+    reference: t.id,
+    name: t.name,
+    amount: Formatters.amount(t.amount),
+    direction: txnDirection(t.type),
+    status: statusKind(t.status),
+    createdAt: t.createdAt.toLocal(),
+  );
 
   final String reference;
   final String name;

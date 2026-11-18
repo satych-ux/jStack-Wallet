@@ -1,10 +1,10 @@
-// TEMPORARY presentation scaffolding. Delete when the data slice lands.
-
+import '../../../../core/error/result.dart';
 import '../entities/transaction.dart';
 
-abstract class TransactionsRepository {
-  /// Newest first.
-  Future<List<Transaction>> getTransactions();
+abstract interface class TransactionsRepository {
+  /// GET /transactions, newest first as the backend sends it.
+  Future<Result<List<Transaction>>> getTransactions();
 
-  Future<Transaction> getTransaction(String id);
+  /// GET /transactions/:id. A 404 is a NotFoundFailure.
+  Future<Result<Transaction>> getTransaction(String id);
 }
