@@ -1,0 +1,409 @@
+openapi: 3.0.3
+info:
+  title: jWallet Lite mock API
+  version: 1.0.0
+  description: |
+    Contract from SPEC.md sections 4, 5 and 9.
+
+    Every success is `{ success: true, data }`; every error is
+    `{ success: false, error: { code, message, fields? } }`.
+    Amounts are JSON numbers in rupees with at most 2 decimals (the server
+    holds integer paise internally). `1500.00` arrives as `1500`; the app
+    formats to 2 decimals.
+
+    State is in memory, seeded from `backend/seed.json`, and resets on
+    restart.
+servers:
+  - url: http://localhost:3000/api/v1
+  - url: http://10.0.2.2:3000/api/v1
+    description: Android emulator
+
+tags:
+  - name: health
+  - name: auth
+  - name: wallet
+  - name: transactions
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness check
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      responses:
+        '200':
+          description: Up
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status: { type: string, example: ok }
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Sign in (API-01, API-02)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: demo@jstack.co }
+                password: { type: string, example: Demo@123 }
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [accessToken, user]
+                        properties:
+                          accessToken: { type: string, example: mock_access_token_123 }
+                          user: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401':
+          description: Wrong email or password. Same code and message for both, so the response does not reveal which was wrong.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: { code: INVALID_CREDENTIALS, message: Invalid email or password }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /users/profile:
+    get:
+      tags: [auth]
+      summary: The signed-in user (API-03)
+      parameters:
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      responses:
+        '200':
+          description: The user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /wallet/balance:
+    get:
+      tags: [wallet]
+      summary: Current balance from the store (API-04)
+      parameters:
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      responses:
+        '200':
+          description: The wallet
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Wallet' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /transactions:
+    get:
+      tags: [transactions]
+      summary: All transactions, newest first (API-05)
+      parameters:
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      responses:
+        '200':
+          description: The list, sorted by createdAt descending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /transactions/transfer:
+    post:
+      tags: [transactions]
+      summary: Send money (API-06 to API-12)
+      description: |
+        Same `Idempotency-Key` + same payload returns the original response
+        with no second deduction. Same key + different payload is 409
+        IDEMPOTENCY_KEY_REUSED. "Same payload" means the four transfer fields
+        as sent (key order and extra fields ignored; remarks absent, null and
+        empty or spaces-only count as equal; other values are compared as
+        sent, so " Rahul" and "Rahul" differ). Only a 200 is remembered:
+        after a 400 or a 409 INSUFFICIENT_BALANCE the key is free for a
+        corrected retry. A replay returns the original response, including
+        the balance at that time. A used key is checked before the body, so a
+        different payload is 409 even if it is also invalid.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: One per transfer attempt, reused on retry of that attempt. Empty or missing is 400; a value with a comma (or the header sent twice) is 400.
+          schema: { type: string, example: 3f1c2b9e-6a4d-4e8b-9a71-2d5c0e7f8a10 }
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [beneficiaryName, mobileNumber, amount]
+              properties:
+                beneficiaryName: { type: string, minLength: 1, example: Rahul Sharma, description: Trimmed; blank is invalid }
+                mobileNumber: { type: string, pattern: '^[0-9]{10}$', example: '9876543210' }
+                amount:
+                  type: number
+                  exclusiveMinimum: true
+                  minimum: 0
+                  description: Rupees, at most 2 decimal places. A JSON number, not a string.
+                  example: 1500
+                remarks: { type: string, maxLength: 100, nullable: true, example: Dinner split, description: 'Optional. Trimmed, then at most 100 characters (an emoji counts as one). Absent, null and blank are all stored as null' }
+      responses:
+        '200':
+          description: Transfer done; the balance is the server's, after the deduction
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [transactionId, status, amount, currency, availableBalance, createdAt]
+                        properties:
+                          transactionId: { type: string, example: TXN10013 }
+                          status: { type: string, enum: [SUCCESS] }
+                          amount: { type: number, example: 1500 }
+                          currency: { type: string, example: INR }
+                          availableBalance: { type: number, example: 23950.75 }
+                          createdAt: { type: string, format: date-time }
+        '400':
+          description: Invalid body (VALIDATION_ERROR, with fields when a field is wrong) or missing header (IDEMPOTENCY_KEY_REQUIRED)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                validation:
+                  value:
+                    success: false
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Invalid transfer details
+                      fields: { mobileNumber: Mobile number must be exactly 10 digits }
+                missingKey:
+                  value:
+                    success: false
+                    error: { code: IDEMPOTENCY_KEY_REQUIRED, message: Idempotency-Key header is required }
+                twoKeys:
+                  value:
+                    success: false
+                    error: { code: IDEMPOTENCY_KEY_REQUIRED, message: Send exactly one Idempotency-Key header }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Not enough balance (no deduction), or the key was used with a different payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                insufficient:
+                  value:
+                    success: false
+                    error: { code: INSUFFICIENT_BALANCE, message: Amount exceeds available balance }
+                keyReused:
+                  value:
+                    success: false
+                    error: { code: IDEMPOTENCY_KEY_REUSED, message: Idempotency-Key was already used with a different payload }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /transactions/{id}:
+    get:
+      tags: [transactions]
+      summary: One transaction (API-13)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, example: TXN10001 }
+        - $ref: '#/components/parameters/SimulateLatencyMs'
+      responses:
+        '200':
+          description: The transaction
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Transaction' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No transaction with that id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: { code: TRANSACTION_NOT_FOUND, message: Transaction not found }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+security:
+  - bearer: []
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Only the literal `mock_access_token_123` is accepted.
+
+  parameters:
+    SimulateLatencyMs:
+      name: simulateLatencyMs
+      in: query
+      required: false
+      description: Demo only (API-15). Accepted on every endpoint. Holds the response back this many ms; the request itself is handled at once, so a slow transfer has already deducted. Plain digits only, capped at 30000; anything else means 0.
+      schema: { type: integer, minimum: 0, maximum: 30000, default: 0 }
+
+  responses:
+    ValidationError:
+      description: |
+        Invalid request data: `fields` names each bad field. A body that
+        cannot be read (malformed JSON, over 100kb, unknown charset or
+        encoding) is also 400 VALIDATION_ERROR, without `fields`; so is a
+        malformed URL (message `Invalid request`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            fields:
+              value:
+                success: false
+                error:
+                  code: VALIDATION_ERROR
+                  message: Email and password are required
+                  fields: { email: Email is required, password: Password is required }
+            malformedJson:
+              value:
+                success: false
+                error: { code: VALIDATION_ERROR, message: Request body is not valid JSON }
+            unreadableBody:
+              value:
+                success: false
+                error: { code: VALIDATION_ERROR, message: Request body could not be read }
+    Unauthorized:
+      description: Missing or wrong bearer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: { code: UNAUTHORIZED, message: Missing or invalid access token }
+    InternalError:
+      description: Unexpected error. No stack trace in the body.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: { code: INTERNAL_ERROR, message: Something went wrong }
+
+  schemas:
+    Success:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - IDEMPOTENCY_KEY_REQUIRED
+                - INVALID_CREDENTIALS
+                - UNAUTHORIZED
+                - NOT_FOUND
+                - TRANSACTION_NOT_FOUND
+                - INSUFFICIENT_BALANCE
+                - IDEMPOTENCY_KEY_REUSED
+                - INTERNAL_ERROR
+            message: { type: string }
+            fields:
+              type: object
+              description: Only on VALIDATION_ERROR. Request field name → message.
+              additionalProperties: { type: string }
+
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: { type: string, example: USR1001 }
+        name: { type: string, example: Aditi Verma }
+        email: { type: string, example: demo@jstack.co }
+
+    Wallet:
+      type: object
+      required: [walletId, currency, availableBalance, maskedAccountNumber]
+      properties:
+        walletId: { type: string, example: WAL-7F3K-2291 }
+        currency: { type: string, example: INR }
+        availableBalance: { type: number, example: 25450.75, description: Rupees, at most 2 decimal places }
+        maskedAccountNumber: { type: string, example: XXXX XXXX 4821 }
+
+    Transaction:
+      type: object
+      required: [id, type, status, amount, currency, counterpartyName, mobileNumber, remarks, createdAt]
+      properties:
+        id: { type: string, example: TXN10012, description: Also the transaction's unique reference }
+        type: { type: string, enum: [DEBIT, CREDIT] }
+        status: { type: string, enum: [SUCCESS, FAILED, PENDING] }
+        amount: { type: number, example: 1500, description: Rupees, at most 2 decimal places }
+        currency: { type: string, example: INR }
+        counterpartyName: { type: string, description: Beneficiary on a DEBIT, sender on a CREDIT, example: Rahul Sharma }
+        mobileNumber: { type: string, example: '9876543210' }
+        remarks: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }

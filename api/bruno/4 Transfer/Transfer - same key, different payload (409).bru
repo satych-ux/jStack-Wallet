@@ -1,0 +1,37 @@
+meta {
+  name: Transfer - same key, different payload (409)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfer
+  body: json
+  auth: bearer
+}
+
+headers {
+  Idempotency-Key: {{transferKey}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "beneficiaryName": "Rahul Sharma",
+    "mobileNumber": "9876543210",
+    "amount": 2000,
+    "remarks": "Dinner split"
+  }
+}
+
+tests {
+  test("409 IDEMPOTENCY_KEY_REUSED in the common error shape", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody().success).to.equal(false);
+    expect(res.getBody().error.code).to.equal("IDEMPOTENCY_KEY_REUSED");
+    expect(res.getBody().error.message).to.be.a("string");
+  });
+}

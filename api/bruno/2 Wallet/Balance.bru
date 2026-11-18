@@ -1,0 +1,28 @@
+meta {
+  name: Balance
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/wallet/balance
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 with the four wallet fields", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data).to.have.all.keys("walletId", "currency", "availableBalance", "maskedAccountNumber");
+    expect(data.availableBalance).to.equal(25450.75);
+  });
+}
+
+docs {
+  25450.75 on a freshly started server.
+}

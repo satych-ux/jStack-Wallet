@@ -1,0 +1,27 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "demo@jstack.co",
+    "password": "Demo@123"
+  }
+}
+
+tests {
+  test("200 with the token and the user", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.accessToken).to.equal("mock_access_token_123");
+    expect(data.user).to.eql({ id: "USR1001", name: "Aditi Verma", email: "demo@jstack.co" });
+  });
+}

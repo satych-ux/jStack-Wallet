@@ -1,0 +1,47 @@
+meta {
+  name: Transfer - slow response (timeout demo)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfer?simulateLatencyMs=2000
+  body: json
+  auth: bearer
+}
+
+headers {
+  Idempotency-Key: {{slowKey}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "beneficiaryName": "Rahul Sharma",
+    "mobileNumber": "9876543210",
+    "amount": 10,
+    "remarks": "Dinner split"
+  }
+}
+
+script:pre-request {
+  const { v4: uuid } = require("uuid");
+  bru.setVar("slowKey", uuid());
+}
+
+tests {
+  test("200 after about 2 seconds", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getResponseTime()).to.be.at.least(1900);
+  });
+}
+
+docs {
+  `?simulateLatencyMs=2000` holds the answer back 2 seconds; the money has
+  already moved by then. Set the app's timeout below the delay to see the
+  timeout path, then retry with the same key: the stored response comes back
+  and nothing is deducted twice.
+}

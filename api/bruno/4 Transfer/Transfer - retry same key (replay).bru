@@ -1,0 +1,40 @@
+meta {
+  name: Transfer - retry same key (replay)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfer
+  body: json
+  auth: bearer
+}
+
+headers {
+  Idempotency-Key: {{transferKey}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "beneficiaryName": "Rahul Sharma",
+    "mobileNumber": "9876543210",
+    "amount": 1500,
+    "remarks": "Dinner split"
+  }
+}
+
+tests {
+  test("200 with the original response: same id, no second deduction", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.transactionId).to.equal(bru.getVar("transactionId"));
+    expect(res.getBody().data.availableBalance).to.equal(bru.getVar("balanceAfter"));
+  });
+}
+
+docs {
+  Same Idempotency-Key and same body as "Transfer": the server returns the stored response and deducts nothing. Check Balance afterwards: it dropped once.
+}

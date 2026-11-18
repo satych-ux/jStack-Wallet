@@ -1,0 +1,20 @@
+meta {
+  name: Profile - no token (401)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/profile
+  body: none
+  auth: none
+}
+
+tests {
+  test("401 UNAUTHORIZED in the common error shape", function () {
+    expect(res.getStatus()).to.equal(401);
+    expect(res.getBody().success).to.equal(false);
+    expect(res.getBody().error.code).to.equal("UNAUTHORIZED");
+    expect(res.getBody().error.message).to.be.a("string");
+  });
+}

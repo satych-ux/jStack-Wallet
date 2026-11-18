@@ -1,0 +1,22 @@
+meta {
+  name: Profile
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/profile
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 with the user, never the password", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.eql({ id: "USR1001", name: "Aditi Verma", email: "demo@jstack.co" });
+  });
+}

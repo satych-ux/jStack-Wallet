@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "jWallet Lite API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

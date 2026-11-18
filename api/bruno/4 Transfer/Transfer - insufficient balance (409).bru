@@ -1,0 +1,56 @@
+meta {
+  name: Transfer - insufficient balance (409)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfer
+  body: json
+  auth: bearer
+}
+
+headers {
+  Idempotency-Key: {{insufficientKey}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "beneficiaryName": "Rahul Sharma",
+    "mobileNumber": "9876543210",
+    "amount": 99999999,
+    "remarks": "Dinner split"
+  }
+}
+
+script:pre-request {
+  const { v4: uuid } = require("uuid");
+  bru.setVar("insufficientKey", uuid());
+}
+
+script:post-response {
+  // Nothing moved: the balance is still the one after the first transfer.
+  const balance = await bru.sendRequest({
+    method: "GET",
+    url: bru.interpolate("{{baseUrl}}/wallet/balance"),
+    headers: { Authorization: "Bearer " + bru.getEnvVar("token") },
+  });
+  bru.setVar("balanceAfter409", balance.data.data.availableBalance);
+}
+
+tests {
+  test("409 INSUFFICIENT_BALANCE in the common error shape", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody().success).to.equal(false);
+    expect(res.getBody().error.code).to.equal("INSUFFICIENT_BALANCE");
+    expect(res.getBody().error.message).to.be.a("string");
+  });
+
+  test("no deduction happened", function () {
+    expect(bru.getVar("balanceAfter409")).to.equal(bru.getVar("balanceAfter"));
+  });
+}

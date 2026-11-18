@@ -1,0 +1,51 @@
+meta {
+  name: Transfer
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/transactions/transfer
+  body: json
+  auth: bearer
+}
+
+headers {
+  Idempotency-Key: {{transferKey}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "beneficiaryName": "Rahul Sharma",
+    "mobileNumber": "9876543210",
+    "amount": 1500,
+    "remarks": "Dinner split"
+  }
+}
+
+script:pre-request {
+  // A fresh key for this attempt; the next two requests reuse it.
+  const { v4: uuid } = require("uuid");
+  bru.setVar("transferKey", uuid());
+}
+
+script:post-response {
+  bru.setVar("transactionId", res.getBody().data.transactionId);
+  bru.setVar("balanceAfter", res.getBody().data.availableBalance);
+}
+
+tests {
+  test("200 with the server's new balance", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.status).to.equal("SUCCESS");
+    expect(data.amount).to.equal(1500);
+    expect(data.currency).to.equal("INR");
+    expect(data.transactionId).to.match(/^TXN\d+$/);
+    expect(data.availableBalance).to.be.a("number");
+  });
+}

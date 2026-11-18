@@ -1,0 +1,24 @@
+meta {
+  name: Details - unknown id (404)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/transactions/NOPE
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("404 TRANSACTION_NOT_FOUND in the common error shape", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getBody().success).to.equal(false);
+    expect(res.getBody().error.code).to.equal("TRANSACTION_NOT_FOUND");
+    expect(res.getBody().error.message).to.be.a("string");
+  });
+}

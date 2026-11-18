@@ -1,0 +1,14 @@
+docs {
+  # jWallet Lite mock API
+
+  Start the backend first: `cd backend && npm start`. State resets on every
+  restart, so run the collection against a fresh server for the balances
+  in the tests to match.
+
+  The `local` environment holds the base URL and the only token the mock
+  accepts (`mock_access_token_123`).
+
+  Folders run in order. `4 Transfer` is a story: send a transfer, retry it
+  with the same Idempotency-Key (same transactionId, no second deduction),
+  reuse the key with a different payload (409), then the failure cases.
+}

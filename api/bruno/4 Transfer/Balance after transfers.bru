@@ -1,0 +1,22 @@
+meta {
+  name: Balance after transfers
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/wallet/balance
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("the replay did not deduct again", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.availableBalance).to.equal(bru.getVar("balanceAfter"));
+  });
+}

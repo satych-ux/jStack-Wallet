@@ -1,0 +1,26 @@
+meta {
+  name: List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/transactions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 with 10 or more, newest first", function () {
+    expect(res.getStatus()).to.equal(200);
+    const list = res.getBody().data;
+    expect(list.length).to.be.at.least(10);
+    for (let i = 1; i < list.length; i++) {
+      expect(Date.parse(list[i - 1].createdAt)).to.be.at.least(Date.parse(list[i].createdAt));
+    }
+  });
+}
